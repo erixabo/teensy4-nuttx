@@ -29,11 +29,26 @@ hálózaton használd, internetre ne tedd ki.
 |---|---|
 | Apache NuttX (`apache/nuttx`) | `8caba095575dfa0c47fd6ca4b974dd5e69798535` |
 | Apache NuttX Apps (`apache/nuttx-apps`) | `0c56297b043157fccee9a56b2af06aa4c49d1ed0` |
-| Gopher kliens | `erixabo/teensy-nuttx-gopher`, `6f8a6fab9ba6363d80b7f6669c7ae548e928fc99` |
+| Gopher kliens (kísérleti NAWS nézet) | `erixabo/teensy-nuttx-gopher`, `7a4a287a53727dbf41dd15a7043ed0ec1d455115` |
 
 A NuttX módosításait a `patches/nuttx-local.patch`, az Apps módosításait a
 `patches/apps-local.patch` tartalmazza. A Teensy board `defconfig` a `config/`
 könyvtárban van. Ezeket a foltokat csak a fenti alapverziókra alkalmazd.
+
+## Kísérleti Gopher-kijelzőméret
+
+Ez az ág kipróbálja a Telnet NAWS ablakméret-egyeztetést és a Gopher kliens
+automatikus, illetve kézzel választható tördelését. A `config/defconfig`
+bekapcsolja a `CONFIG_TELNET_SUPPORT_NAWS` opciót. Az automatikus méret a
+Telnet-kliens által közölt oszlop- és sorszámot veszi át; soros konzolon vagy
+hiányzó méretadatnál 80×24 az alapérték. A Gopher kliens `v` menüjében
+80×24, 100×30 és 120×40 nézet választható. Ezek csak a kliens elrendezését
+állítják, nem tudják átméretezni a távoli terminálablakot.
+
+Kísérleti build: ezen az ágon a NAWS és a méretválasztó együtt fordul le.
+A tiszta bootstrap build 2026-10-29-én sikerült: 232 816 bájt flash (11,46%),
+97 680 bájt SRAM (18,63%); az Intel HEX fájl 654 910 bájt. A firmware
+feltöltése és a hardveres Telnet-próba még nem történt meg.
 
 ## Teljes build előkészítése
 
