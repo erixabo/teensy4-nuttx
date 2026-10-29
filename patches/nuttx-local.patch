@@ -1,0 +1,185 @@
+diff --git a/boards/arm/imxrt/teensy-4.x/configs/netnsh-4.1/defconfig b/boards/arm/imxrt/teensy-4.x/configs/netnsh-4.1/defconfig
+index 570f15b7..21da07c8 100644
+--- a/boards/arm/imxrt/teensy-4.x/configs/netnsh-4.1/defconfig
++++ b/boards/arm/imxrt/teensy-4.x/configs/netnsh-4.1/defconfig
+@@ -6,6 +6,7 @@
+ # modifications.
+ #
+ # CONFIG_ARCH_LEDS is not set
++# CONFIG_MMCSD_SPI is not set
+ CONFIG_ARCH="arm"
+ CONFIG_ARCH_BOARD="teensy-4.x"
+ CONFIG_ARCH_BOARD_TEENSY_4X=y
+@@ -21,22 +22,34 @@ CONFIG_BUILTIN=y
+ CONFIG_CDCACM=y
+ CONFIG_CDCACM_CONSOLE=y
+ CONFIG_ETH0_PHY_DP83825I=y
++CONFIG_FAT_LCNAMES=y
++CONFIG_FAT_LFN=y
++CONFIG_FS_FAT=y
++CONFIG_FAT_DIRECT_RETRY=y
+ CONFIG_FS_PROCFS=y
+ CONFIG_IDLETHREAD_STACKSIZE=2048
+ CONFIG_IMXRT_ENET=y
++CONFIG_IMXRT_LPSPI3=y
+ CONFIG_IMXRT_LPUART1=y
+ CONFIG_IMXRT_USBDEV=y
++CONFIG_IMXRT_USDHC1=y
++CONFIG_IMXRT_USDHC1_INVERT_CD=y
++CONFIG_IMXRT_USDHC1_WIDTH_D1_D4=y
+ CONFIG_INIT_ENTRYPOINT="nsh_main"
+ CONFIG_INTELHEX_BINARY=y
+ CONFIG_LIBC_HOSTNAME="Teensy 4.x"
+ CONFIG_LINE_MAX=64
++CONFIG_MMCSD=y
++CONFIG_MMCSD_SDIO=y
+ CONFIG_NET=y
+ CONFIG_NETDB_DNSCLIENT=y
+ CONFIG_NETDEV_STATISTICS=y
+ CONFIG_NETINIT_DHCPC=y
+ CONFIG_NETINIT_NOMAC=y
++CONFIG_NETUTILS_GOPHER=y
+ CONFIG_NETUTILS_TELNETD=y
+ CONFIG_NET_BROADCAST=y
++CONFIG_NET_ETH_PKTSIZE=1514
+ CONFIG_NET_ICMP_SOCKET=y
+ CONFIG_NET_ICMPv6=y
+ CONFIG_NET_ICMPv6_NEIGHBOR=y
+@@ -47,6 +60,7 @@ CONFIG_NET_TCP=y
+ CONFIG_NET_TCP_WRITE_BUFFERS=y
+ CONFIG_NET_UDP=y
+ CONFIG_NET_UDP_WRITE_BUFFERS=y
++CONFIG_NSH_TELNET=y
+ CONFIG_NSH_BUILTIN_APPS=y
+ CONFIG_NSH_FILEIOSIZE=512
+ CONFIG_NSH_READLINE=y
+@@ -54,7 +68,13 @@ CONFIG_NSH_USBCONSOLE=y
+ CONFIG_RAM_SIZE=1048576
+ CONFIG_RAM_START=0x20200000
+ CONFIG_READLINE_CMD_HISTORY=y
++CONFIG_SCHED_HPWORK=y
+ CONFIG_SCHED_LPWORK=y
++CONFIG_SCHED_WAITPID=y
++CONFIG_SDIO_BLOCKSETUP=y
++CONFIG_SPI=y
++CONFIG_SPI_CALLBACK=y
++CONFIG_SPI_DRIVER=y
+ CONFIG_START_DAY=14
+ CONFIG_START_MONTH=3
+ CONFIG_SYSTEM_DHCPC_RENEW=y
+diff --git a/boards/arm/imxrt/teensy-4.x/src/imxrt_bringup.c b/boards/arm/imxrt/teensy-4.x/src/imxrt_bringup.c
+index 53fefa8a..81e83b8d 100644
+--- a/boards/arm/imxrt/teensy-4.x/src/imxrt_bringup.c
++++ b/boards/arm/imxrt/teensy-4.x/src/imxrt_bringup.c
+@@ -27,11 +27,14 @@
+ #include <nuttx/config.h>
+ 
+ #include <sys/types.h>
++#include <sys/stat.h>
+ #include <nuttx/debug.h>
+ 
+ #include <syslog.h>
+ #include <nuttx/fs/fs.h>
+ #include <nuttx/i2c/i2c_master.h>
++#include <nuttx/spi/spi.h>
++#include <nuttx/spi/spi_transfer.h>
+ #include <imxrt_lpi2c.h>
+ #include <imxrt_lpspi.h>
+ #include <nuttx/input/buttons.h>
+@@ -149,6 +152,17 @@ int imxrt_bringup(void)
+   /* Initialize SDHC-base MMC/SD card support */
+ 
+   nsh_sdmmc_initialize();
++
++#  if defined(CONFIG_TEENSY_41)
++  /* Mount the Teensy 4.1 built-in microSD card for NSH at boot. */
++
++  mkdir("/mnt", 0777);
++  ret = nx_mount("/dev/mmcsd0", "/mnt", "vfat", 0, NULL);
++  if (ret < 0)
++    {
++      syslog(LOG_ERR, "ERROR: Failed to mount microSD at /mnt: %d\n", ret);
++    }
++#  endif
+ #endif
+ 
+ #if defined(CONFIG_IMXRT_ENET) && defined(CONFIG_NETDEV_LATEINIT)
+@@ -214,5 +228,24 @@ int imxrt_bringup(void)
+ #endif
+ 
+   UNUSED(ret);
++#ifdef CONFIG_SPI_DRIVER
++#  ifdef CONFIG_IMXRT_LPSPI3
++  {
++    struct spi_dev_s *spi = imxrt_lpspibus_initialize(3);
++    if (spi == NULL)
++      {
++        syslog(LOG_ERR, "ERROR: Failed to initialize LPSPI3\n");
++      }
++    else
++      {
++        ret = spi_register(spi, 3);
++        if (ret < 0)
++          {
++            syslog(LOG_ERR, "ERROR: Failed to register LPSPI3: %d\n", ret);
++          }
++      }
++  }
++#  endif
++#endif
+   return OK;
+ }
+diff --git a/boards/arm/imxrt/teensy-4.x/src/imxrt_spi.c b/boards/arm/imxrt/teensy-4.x/src/imxrt_spi.c
+index 5175dc03..ec7c2d6f 100644
+--- a/boards/arm/imxrt/teensy-4.x/src/imxrt_spi.c
++++ b/boards/arm/imxrt/teensy-4.x/src/imxrt_spi.c
+@@ -139,6 +139,20 @@ uint8_t imxrt_lpspi3status(struct spi_dev_s *dev, uint32_t devid)
+ {
+   return 0;
+ }
++
++#ifdef CONFIG_SPI_CALLBACK
++int imxrt_lpspi3register(struct spi_dev_s *dev,
++                         spi_mediachange_t callback,
++                         void *arg)
++{
++  /* This exposed bus has no removable-card detect input. */
++
++  UNUSED(dev);
++  UNUSED(callback);
++  UNUSED(arg);
++  return OK;
++}
++#endif
+ #endif
+ 
+ #ifdef CONFIG_IMXRT_LPSPI4
+diff --git a/drivers/usbdev/cdcacm.c b/drivers/usbdev/cdcacm.c
+index 87671cf0..51e745a2 100644
+--- a/drivers/usbdev/cdcacm.c
++++ b/drivers/usbdev/cdcacm.c
+@@ -1854,6 +1854,24 @@ static int cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
+                   {
+                     memcpy(&priv->linecoding,
+                            dataout, SIZEOF_CDC_LINECODING);
++
++#if defined(CONFIG_TEENSY_41)
++                    /* The PJRC Teensy Loader asks the running firmware to
++                     * enter HalfKay by setting the CDC baud rate to 134.
++                     * Teensyduino handles this with BKPT #251.  Do the same
++                     * here so the standard loader can reflash NuttX without
++                     * requiring the physical Program button each time.
++                     */
++
++                    if (dataout[0] == 134 && dataout[1] == 0 &&
++                        dataout[2] == 0 && dataout[3] == 0)
++                      {
++                        asm volatile("bkpt #251");
++                        for (;;)
++                          {
++                          }
++                      }
++#endif
+                   }
+ 
+                 /* Respond with a zero length packet */

@@ -1,0 +1,138 @@
+diff --git a/nshlib/nsh_init.c b/nshlib/nsh_init.c
+index 49c1488..ca46e7d 100644
+--- a/nshlib/nsh_init.c
++++ b/nshlib/nsh_init.c
+@@ -111,7 +111,6 @@ void nsh_initialize(void)
+ #if defined(CONFIG_ETC_ROMFS) && !defined(CONFIG_NSH_DISABLESCRIPT)
+   FAR struct console_stdio_s *pstate;
+ #endif
+-
+   /* populate NSH prompt string */
+ 
+   nsh_update_prompt();
+@@ -164,18 +163,6 @@ void nsh_initialize(void)
+   nsh_release(&pstate->cn_vtbl);
+ #endif
+ 
+-#if defined(CONFIG_NSH_TELNET) && !defined(CONFIG_NSH_DISABLE_TELNETSTART) && \
+-  !defined(CONFIG_NETINIT_NETLOCAL)
+-  /* If the Telnet console is selected as a front-end, then start the
+-   * Telnet daemon UNLESS network initialization is deferred via
+-   * CONFIG_NETINIT_NETLOCAL.  In that case, the telnet daemon must be
+-   * started manually with the telnetd command after the network has
+-   * been initialized
+-   */
+-
+-  nsh_telnetstart(AF_UNSPEC);
+-#endif
+-
+ #if defined(CONFIG_NSH_DROPBEAR) && \
+     !defined(CONFIG_NSH_DISABLE_DROPBEARSTART) && \
+     !defined(CONFIG_NETINIT_NETLOCAL)
+@@ -188,3 +175,4 @@ void nsh_initialize(void)
+   nsh_dropbearstart();
+ #endif
+ }
++
+diff --git a/nshlib/nsh_usbconsole.c b/nshlib/nsh_usbconsole.c
+index 74f8a47..7fd9b17 100644
+--- a/nshlib/nsh_usbconsole.c
++++ b/nshlib/nsh_usbconsole.c
+@@ -32,6 +32,7 @@
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <assert.h>
++#include <netinet/in.h>
+ #include <nuttx/debug.h>
+ 
+ #ifdef CONFIG_CDCACM
+@@ -46,6 +47,9 @@
+ #include "nsh_console.h"
+ 
+ #include "netutils/netinit.h"
++#if defined(CONFIG_NSH_TELNET) && !defined(CONFIG_NSH_DISABLESCRIPT)
++#  include "netutils/netlib.h"
++#endif
+ 
+ #ifdef HAVE_USB_CONSOLE
+ 
+@@ -283,10 +287,77 @@ int nsh_consolemain(int argc, FAR char *argv[])
+   DEBUGASSERT(ret == OK);
+ #endif
+ 
+-  /* Configure to use /dev/null if we do not have a valid console. */
++  /* Use /dev/null while no USB console is connected.  Run the optional
++   * removable startup script now, after the console state is initialized
++   * but before waiting for a USB host. */
+ 
+-#ifndef CONFIG_DEV_CONSOLE
+   nsh_nullstdio();
++
++#ifndef CONFIG_NSH_DISABLESCRIPT
++  {
++    FAR struct console_stdio_s *autorun;
++    bool script_readable = false;
++#ifdef CONFIG_NSH_TELNET
++    struct in_addr address;
++    int attempt;
++
++    /* DHCP runs asynchronously; if Telnet is enabled, give it up to ten
++     * seconds to assign an address before the startup script launches
++     * network services.
++     */
++
++    for (attempt = 0; attempt < 10; attempt++)
++      {
++        address.s_addr = 0;
++        if (netlib_get_ipv4addr("eth0", &address) == 0 &&
++            address.s_addr != 0)
++          {
++            break;
++          }
++
++        sleep(1);
++      }
++
++#endif
++
++    /* Probe the script before executing it.  A damaged or unreadable SD
++     * directory entry must not leave the board without its Telnet console.
++     */
++
++    {
++      char first;
++      int fd = open("/mnt/autorun.nsh", O_RDONLY);
++      if (fd >= 0)
++        {
++          script_readable = read(fd, &first, 1) == 1;
++          close(fd);
++        }
++    }
++
++    /* Keep the autorun parser state separate from the interactive USB
++     * console; the script may start background tasks and use redirection.
++     */
++
++    autorun = nsh_newconsole(false);
++    if (autorun != NULL)
++      {
++        if (script_readable)
++          {
++            nsh_script(&autorun->cn_vtbl, "autorun", "/mnt/autorun.nsh",
++                       false);
++          }
++#ifdef CONFIG_NSH_TELNET
++        else
++          {
++            /* A missing or unreadable removable autorun file must not
++             * leave the board without the remote shell. */
++
++            nsh_telnetstart(AF_INET);
++          }
++#endif
++        nsh_release(&autorun->cn_vtbl);
++      }
++  }
+ #endif
+ 
+   /* Now loop, executing creating a session for each USB connection */

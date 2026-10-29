@@ -1,0 +1,13 @@
+/nuttx/
+/apps/
+/work/
+*.hex
+*.elf
+*.map
+*.bin
+*.o
+*.a
+.config
+.config.old
+.config.backup
+.DS_Store
