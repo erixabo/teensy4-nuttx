@@ -15,6 +15,8 @@ is előkészíthető; tényleges RF/HW próba természetesen Teensy 4.1-et igén
 - A Teensy Loader HalfKay módba léptetése USB CDC 134 baud kéréssel.
 - Opcionális `/mnt/autorun.nsh`: ha olvasható, induláskor végrehajtja; ha
   hiányzik vagy nem olvasható, a firmware elindítja a Telnet NSH-t.
+- A Telnet driver nyers terminálmódban elfogadja a `SUPPRESS-GO-AHEAD`
+  egyeztetést, így a Gopher menü billentyűi Enter nélkül működnek.
 - Külön repóban lévő interaktív Gopher kliens: `teensy-nuttx-gopher`.
 
 A megosztott autorun fájl tartalmát ez a projekt nem tartalmazza. A hálózati
@@ -75,11 +77,13 @@ alkalommal újrapróbálkozik. Hook nélküli első firmware-hez a Program gomb 
 ## Ellenőrzés
 
 2026-10-29-én a `bootstrap-build.sh` egy tiszta, sekély checkoutból sikeresen
-összeállította a teljes firmware-t. A NuttX méretjelentése 231 640 bájt flash
+összeállította a teljes firmware-t. A Telnet SGA-javítás utáni build mérete
+231 776 bájt flash
 (1984 KiB-ból) és 97 680 bájt SRAM (512 KiB-ból) volt. A HEX-et Teensy 4.1-re
-feltöltöttük, majd soros és Telnet NSH-n ellenőriztük. A Gopher
-kliens menüjét, szöveges lapját, lapozását, UTF-8 ékezeteit és kilépés utáni
-NSH/Telnet elérhetőségét is a célhardveren próbáltuk. Ez a hardverpróba nem
+feltöltöttük, majd soros és Telnet NSH-n ellenőriztük. A Gopher kliens
+menüjét, nyíl/Tab navigációját, Enterrel megnyitását, visszalépését, szöveges
+lapozását, UTF-8 ékezeteit és kilépés utáni NSH/Telnet elérhetőségét is a
+célhardveren próbáltuk. Ez a hardverpróba nem
 ismételhető Teensy nélkül.
 
 ## Licenc
