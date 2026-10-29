@@ -6,7 +6,7 @@ work_dir="${1:-$HOME/teensy4-nuttx-build}"
 nuttx_rev="8caba095575dfa0c47fd6ca4b974dd5e69798535"
 apps_rev="0c56297b043157fccee9a56b2af06aa4c49d1ed0"
 gopher_url="https://github.com/erixabo/teensy-nuttx-gopher.git"
-gopher_rev="7a4a287a53727dbf41dd15a7043ed0ec1d455115"
+gopher_rev="b24577a3d8c08f99e37d0fbab854a2f12c0f754a"
 
 if ! command -v arm-none-eabi-gcc >/dev/null 2>&1; then
   pio_toolchain="$HOME/.platformio/packages/toolchain-gccarmnoneeabi-teensy/bin"

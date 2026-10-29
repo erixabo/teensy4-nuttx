@@ -17,6 +17,9 @@ is előkészíthető; tényleges RF/HW próba természetesen Teensy 4.1-et igén
   majd az NSH indulásakor a firmware kiadja a `source /mnt/autorun.nsh`
   parancsot. Az NSH saját szkriptfuttatója dolgozza fel; hiányzó fájlnál az
   NSH `source` hibát ad.
+- Az NSH szkriptfuttató minden sor után ütemezési lehetőséget ad a háttérben
+  indított programoknak. A Telnet daemon autorunból indításakor utána `sleep 1`
+  is szerepeljen, hogy elindulhasson, mielőtt a szkript továbblép.
 - Az i.MX RT USDHC meghajtó rövid, nem cache-vonalra igazított olvasásait a
   belső, igazított DMA-pufferen keresztül kezeli. Ez szükséges az NSH
   bájtonként olvasó szkriptbemenetéhez is.
@@ -34,7 +37,7 @@ hálózaton használd, internetre ne tedd ki.
 |---|---|
 | Apache NuttX (`apache/nuttx`) | `8caba095575dfa0c47fd6ca4b974dd5e69798535` |
 | Apache NuttX Apps (`apache/nuttx-apps`) | `0c56297b043157fccee9a56b2af06aa4c49d1ed0` |
-| Gopher kliens (kísérleti NAWS nézet) | `erixabo/teensy-nuttx-gopher`, `7a4a287a53727dbf41dd15a7043ed0ec1d455115` |
+| Gopher kliens (kísérleti NAWS nézet) | `erixabo/teensy-nuttx-gopher`, `b24577a3d8c08f99e37d0fbab854a2f12c0f754a` |
 
 A NuttX módosításait a `patches/nuttx-local.patch`, az Apps módosításait a
 `patches/apps-local.patch` tartalmazza. A Teensy board `defconfig` a `config/`
@@ -51,12 +54,12 @@ hiányzó méretadatnál 80×24 az alapérték. A Gopher kliens `v` menüjében
 állítják, nem tudják átméretezni a távoli terminálablakot.
 
 Kísérleti build: ezen az ágon a NAWS és a méretválasztó együtt fordul le.
-2026-10-29-én az autorun javításával együtt sikeresen lefordult: 232 592 bájt
-flash (11,45%) és 97 680 bájt SRAM (18,63%). A javított firmware a Teensy 4.1-re
-felkerült. Az SD-kártyán lévő `/mnt/test` fájl `rendben` tartalma igazolja, hogy
-az autorun szkript induláskor lefutott. A Telnet NSH és a Gopher kliens menüje
-Telneten is elindult; a nézetválasztót, navigációt és újracsatlakozást a
-célhardveren ellenőriztem.
+2026-10-29-én a Gopher képernyőkimenetének pufferelésével együtt sikeresen
+lefordult: 233 152 bájt flash és 118 160 bájt SRAM (512 KiB-ból). A firmware
+felkerült a Teensy 4.1-re. Hideg indulás után az autorun lefutott, a
+`/mnt/test` tartalma `rendben` lett, a `telnetd` folyamat elindult, és a Telnet
+23-as porton kapcsolódni lehetett. A Gopher főmenü megjelent; a nyíllal léptetés
+csak a régi és az új sort rajzolta újra, az Enteres lapnyitás is működött.
 
 ## Teljes build előkészítése
 
@@ -70,8 +73,8 @@ PlatformIO által biztosított `arm-none-eabi` toolchainnel készült.
 
 A szkript tiszta célkönyvtárba klónozza a rögzített Apache forrásokat, alkalmazza
 a foltokat, bemásolja a külön Gopher klienst, beállítja a boardot, majd lefordítja
-a firmware-t. A saját GitHub-fiók jogosultsága szükséges a privát Gopher repó
-klónozásához.
+a firmware-t. A Gopher kliens nyilvános Git repóból klónozható; a szkript
+rögzített commitot használ.
 
 Kézi build meglévő checkoutokból:
 
@@ -99,14 +102,9 @@ alkalommal újrapróbálkozik. Hook nélküli első firmware-hez a Program gomb 
 
 ## Ellenőrzés
 
-2026-10-29-én a `bootstrap-build.sh` egy tiszta, sekély checkoutból sikeresen
-összeállította a firmware-t. Az aktuális build 232 592 bájt flash-t (1984
-KiB-ból) és 97 680 bájt SRAM-ot (512 KiB-ból) használ. A HEX Teensy 4.1-re
-került. Soros konzolon ellenőriztem, hogy `/mnt/test` tartalma `rendben` lett;
-ez az autorun szkriptben szereplő törlés és kiírás eredménye. Telneten a
-Gopher főmenü, a 80×24 automatikus nézet, a kézi méretválasztás, a nyilas
-navigáció, az Enteres megnyitás, a visszalépés és az újracsatlakozás is
-működött. Ez a hardverpróba Teensy 4.1 nélkül nem ismételhető.
+2026-10-29-én a módosított build sikeresen elkészült és felkerült. A bootpróbán
+a Telnet automatikusan elindult, a Gopher menü, a kétsoros kijelölésfrissítés
+és a lapnyitás működött. A hardverpróba Teensy 4.1 nélkül nem ismételhető.
 
 ## Licenc
 

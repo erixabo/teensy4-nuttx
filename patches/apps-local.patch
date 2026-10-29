@@ -96,3 +96,19 @@ index 74f8a47..9336f96 100644
  #endif
  
    /* Now loop, executing creating a session for each USB connection */
+
+diff --git a/nshlib/nsh_script.c b/nshlib/nsh_script.c
+index 20114ef..536fb39 100644
+--- a/nshlib/nsh_script.c
++++ b/nshlib/nsh_script.c
+@@ -184,6 +184,12 @@ int nsh_script(FAR struct nsh_vtbl_s *vtbl, FAR const FAR char *cmd,
+                 {
+                   ret = nsh_parse(vtbl, buffer);
+                 }
++
++              /* Give background applications started by the command a
++               * chance to initialize before the next script line reuses
++               * the parser's command buffer. */
++
++              sched_yield();
+             }
