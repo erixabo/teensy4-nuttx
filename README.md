@@ -27,7 +27,7 @@ hálózaton használd, internetre ne tedd ki.
 |---|---|
 | Apache NuttX (`apache/nuttx`) | `8caba095575dfa0c47fd6ca4b974dd5e69798535` |
 | Apache NuttX Apps (`apache/nuttx-apps`) | `0c56297b043157fccee9a56b2af06aa4c49d1ed0` |
-| Gopher kliens | külön repó, `erixabo/teensy-nuttx-gopher`, `main` |
+| Gopher kliens | `erixabo/teensy-nuttx-gopher`, `6f8a6fab9ba6363d80b7f6669c7ae548e928fc99` |
 
 A NuttX módosításait a `patches/nuttx-local.patch`, az Apps módosításait a
 `patches/apps-local.patch` tartalmazza. A Teensy board `defconfig` a `config/`
@@ -74,8 +74,10 @@ alkalommal újrapróbálkozik. Hook nélküli első firmware-hez a Program gomb 
 
 ## Ellenőrzés
 
-2026-10-29-én a rögzített helyi forrásból tiszta NuttX build készült; a HEX-et
-Teensy 4.1-re feltöltöttük, majd soros és Telnet NSH-n ellenőriztük. A Gopher
+2026-10-29-én a `bootstrap-build.sh` egy tiszta, sekély checkoutból sikeresen
+összeállította a teljes firmware-t. A NuttX méretjelentése 231 640 bájt flash
+(1984 KiB-ból) és 97 680 bájt SRAM (512 KiB-ból) volt. A HEX-et Teensy 4.1-re
+feltöltöttük, majd soros és Telnet NSH-n ellenőriztük. A Gopher
 kliens menüjét, szöveges lapját, lapozását, UTF-8 ékezeteit és kilépés utáni
 NSH/Telnet elérhetőségét is a célhardveren próbáltuk. Ez a hardverpróba nem
 ismételhető Teensy nélkül.

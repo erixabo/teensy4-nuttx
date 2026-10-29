@@ -2,14 +2,6 @@ diff --git a/nshlib/nsh_init.c b/nshlib/nsh_init.c
 index 49c1488..ca46e7d 100644
 --- a/nshlib/nsh_init.c
 +++ b/nshlib/nsh_init.c
-@@ -111,7 +111,6 @@ void nsh_initialize(void)
- #if defined(CONFIG_ETC_ROMFS) && !defined(CONFIG_NSH_DISABLESCRIPT)
-   FAR struct console_stdio_s *pstate;
- #endif
--
-   /* populate NSH prompt string */
- 
-   nsh_update_prompt();
 @@ -164,18 +163,6 @@ void nsh_initialize(void)
    nsh_release(&pstate->cn_vtbl);
  #endif
@@ -29,11 +21,6 @@ index 49c1488..ca46e7d 100644
  #if defined(CONFIG_NSH_DROPBEAR) && \
      !defined(CONFIG_NSH_DISABLE_DROPBEARSTART) && \
      !defined(CONFIG_NETINIT_NETLOCAL)
-@@ -188,3 +175,4 @@ void nsh_initialize(void)
-   nsh_dropbearstart();
- #endif
- }
-+
 diff --git a/nshlib/nsh_usbconsole.c b/nshlib/nsh_usbconsole.c
 index 74f8a47..7fd9b17 100644
 --- a/nshlib/nsh_usbconsole.c
