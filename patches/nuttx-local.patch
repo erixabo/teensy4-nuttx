@@ -1,3 +1,26 @@
+diff --git a/arch/arm/src/imxrt/imxrt_usdhc.c b/arch/arm/src/imxrt/imxrt_usdhc.c
+index d63253c9..01d8c585 100644
+--- a/arch/arm/src/imxrt/imxrt_usdhc.c
++++ b/arch/arm/src/imxrt/imxrt_usdhc.c
+@@ -2975,6 +2975,18 @@ static int imxrt_dmapreflight(struct sdio_dev_s *dev,
+ 
+   DEBUGASSERT(priv != NULL && buflen > 0);
+ 
++#if defined(CONFIG_ARMV7M_DCACHE)
++  /* Short transfers are copied through the aligned internal RX buffer by
++   * imxrt_dmarecvsetup().  Do not reject them here solely because the
++   * caller's buffer or length is not cache-line aligned.
++   */
++
++  if (buflen <= sizeof(priv->rxbuffer))
++    {
++      return 0;
++    }
++#endif
++
+   /* DMA must be possible to the buffer and it must be word (4 bytes) aligned
+    */
+ 
 diff --git a/boards/arm/imxrt/teensy-4.x/configs/netnsh-4.1/defconfig b/boards/arm/imxrt/teensy-4.x/configs/netnsh-4.1/defconfig
 index 570f15b7..bd2b02de 100644
 --- a/boards/arm/imxrt/teensy-4.x/configs/netnsh-4.1/defconfig

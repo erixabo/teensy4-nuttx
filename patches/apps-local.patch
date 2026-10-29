@@ -1,8 +1,8 @@
 diff --git a/nshlib/nsh_init.c b/nshlib/nsh_init.c
-index 49c1488..ca46e7d 100644
+index 49c1488..0e24c8a 100644
 --- a/nshlib/nsh_init.c
 +++ b/nshlib/nsh_init.c
-@@ -164,18 +163,6 @@ void nsh_initialize(void)
+@@ -164,18 +164,6 @@ void nsh_initialize(void)
    nsh_release(&pstate->cn_vtbl);
  #endif
  
@@ -22,7 +22,7 @@ index 49c1488..ca46e7d 100644
      !defined(CONFIG_NSH_DISABLE_DROPBEARSTART) && \
      !defined(CONFIG_NETINIT_NETLOCAL)
 diff --git a/nshlib/nsh_usbconsole.c b/nshlib/nsh_usbconsole.c
-index 74f8a47..7fd9b17 100644
+index 74f8a47..9336f96 100644
 --- a/nshlib/nsh_usbconsole.c
 +++ b/nshlib/nsh_usbconsole.c
 @@ -32,6 +32,7 @@
@@ -43,7 +43,7 @@ index 74f8a47..7fd9b17 100644
  
  #ifdef HAVE_USB_CONSOLE
  
-@@ -283,10 +287,77 @@ int nsh_consolemain(int argc, FAR char *argv[])
+@@ -283,10 +287,50 @@ int nsh_consolemain(int argc, FAR char *argv[])
    DEBUGASSERT(ret == OK);
  #endif
  
@@ -58,7 +58,6 @@ index 74f8a47..7fd9b17 100644
 +#ifndef CONFIG_NSH_DISABLESCRIPT
 +  {
 +    FAR struct console_stdio_s *autorun;
-+    bool script_readable = false;
 +#ifdef CONFIG_NSH_TELNET
 +    struct in_addr address;
 +    int attempt;
@@ -82,41 +81,15 @@ index 74f8a47..7fd9b17 100644
 +
 +#endif
 +
-+    /* Probe the script before executing it.  A damaged or unreadable SD
-+     * directory entry must not leave the board without its Telnet console.
-+     */
-+
-+    {
-+      char first;
-+      int fd = open("/mnt/autorun.nsh", O_RDONLY);
-+      if (fd >= 0)
-+        {
-+          script_readable = read(fd, &first, 1) == 1;
-+          close(fd);
-+        }
-+    }
-+
-+    /* Keep the autorun parser state separate from the interactive USB
-+     * console; the script may start background tasks and use redirection.
++    /* The SD card is mounted during board bring-up, before nsh_main starts.
++     * Hand the startup file straight to NSH, like its interactive source
++     * command.  A missing file is reported by NSH itself.
 +     */
 +
 +    autorun = nsh_newconsole(false);
 +    if (autorun != NULL)
 +      {
-+        if (script_readable)
-+          {
-+            nsh_script(&autorun->cn_vtbl, "autorun", "/mnt/autorun.nsh",
-+                       false);
-+          }
-+#ifdef CONFIG_NSH_TELNET
-+        else
-+          {
-+            /* A missing or unreadable removable autorun file must not
-+             * leave the board without the remote shell. */
-+
-+            nsh_telnetstart(AF_INET);
-+          }
-+#endif
++        nsh_parse(&autorun->cn_vtbl, "source /mnt/autorun.nsh");
 +        nsh_release(&autorun->cn_vtbl);
 +      }
 +  }

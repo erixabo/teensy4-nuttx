@@ -13,8 +13,13 @@ is előkészíthető; tényleges RF/HW próba természetesen Teensy 4.1-et igén
 - Beépített microSD csatolása `/mnt` alá FAT fájlrendszerként.
 - SPI3 felderítése és `/dev/spi3` eszköz regisztrálása.
 - A Teensy Loader HalfKay módba léptetése USB CDC 134 baud kéréssel.
-- Opcionális `/mnt/autorun.nsh`: ha olvasható, induláskor végrehajtja; ha
-  hiányzik vagy nem olvasható, a firmware elindítja a Telnet NSH-t.
+- Opcionális `/mnt/autorun.nsh`: a board bring-up előbb felcsatolja az SD-t,
+  majd az NSH indulásakor a firmware kiadja a `source /mnt/autorun.nsh`
+  parancsot. Az NSH saját szkriptfuttatója dolgozza fel; hiányzó fájlnál az
+  NSH `source` hibát ad.
+- Az i.MX RT USDHC meghajtó rövid, nem cache-vonalra igazított olvasásait a
+  belső, igazított DMA-pufferen keresztül kezeli. Ez szükséges az NSH
+  bájtonként olvasó szkriptbemenetéhez is.
 - A Telnet driver nyers terminálmódban elfogadja a `SUPPRESS-GO-AHEAD`
   egyeztetést, így a Gopher menü billentyűi Enter nélkül működnek.
 - Külön repóban lévő interaktív Gopher kliens: `teensy-nuttx-gopher`.
@@ -46,9 +51,12 @@ hiányzó méretadatnál 80×24 az alapérték. A Gopher kliens `v` menüjében
 állítják, nem tudják átméretezni a távoli terminálablakot.
 
 Kísérleti build: ezen az ágon a NAWS és a méretválasztó együtt fordul le.
-A tiszta bootstrap build 2026-10-29-én sikerült: 232 816 bájt flash (11,46%),
-97 680 bájt SRAM (18,63%); az Intel HEX fájl 654 910 bájt. A firmware
-feltöltése és a hardveres Telnet-próba még nem történt meg.
+2026-10-29-én az autorun javításával együtt sikeresen lefordult: 232 592 bájt
+flash (11,45%) és 97 680 bájt SRAM (18,63%). A javított firmware a Teensy 4.1-re
+felkerült. Az SD-kártyán lévő `/mnt/test` fájl `rendben` tartalma igazolja, hogy
+az autorun szkript induláskor lefutott. A Telnet NSH és a Gopher kliens menüje
+Telneten is elindult; a nézetválasztót, navigációt és újracsatlakozást a
+célhardveren ellenőriztem.
 
 ## Teljes build előkészítése
 
@@ -92,14 +100,13 @@ alkalommal újrapróbálkozik. Hook nélküli első firmware-hez a Program gomb 
 ## Ellenőrzés
 
 2026-10-29-én a `bootstrap-build.sh` egy tiszta, sekély checkoutból sikeresen
-összeállította a teljes firmware-t. A Telnet SGA-javítás utáni build mérete
-231 776 bájt flash
-(1984 KiB-ból) és 97 680 bájt SRAM (512 KiB-ból) volt. A HEX-et Teensy 4.1-re
-feltöltöttük, majd soros és Telnet NSH-n ellenőriztük. A Gopher kliens
-menüjét, nyíl/Tab navigációját, Enterrel megnyitását, visszalépését, szöveges
-lapozását, UTF-8 ékezeteit és kilépés utáni NSH/Telnet elérhetőségét is a
-célhardveren próbáltuk. Ez a hardverpróba nem
-ismételhető Teensy nélkül.
+összeállította a firmware-t. Az aktuális build 232 592 bájt flash-t (1984
+KiB-ból) és 97 680 bájt SRAM-ot (512 KiB-ból) használ. A HEX Teensy 4.1-re
+került. Soros konzolon ellenőriztem, hogy `/mnt/test` tartalma `rendben` lett;
+ez az autorun szkriptben szereplő törlés és kiírás eredménye. Telneten a
+Gopher főmenü, a 80×24 automatikus nézet, a kézi méretválasztás, a nyilas
+navigáció, az Enteres megnyitás, a visszalépés és az újracsatlakozás is
+működött. Ez a hardverpróba Teensy 4.1 nélkül nem ismételhető.
 
 ## Licenc
 
